@@ -1,11 +1,11 @@
 from scapy.all import *
 import pyshark
 
-# pcaps = rdpcap('./Traffic/Shadowsocks2.pcapng')
+# pcaps = rdpcap('./TrafficData/Shadowsocks2.pcapng')
 # <pre name="code" class="python">packet=pcaps[0]
 # a = packet[Raw].load
 
-cap = pyshark.FileCapture('./Traffic/Shadowsocks2.pcapng')
+cap = pyshark.FileCapture('./TrafficData/Shadowsocks2.pcapng')
 dic = {}
 for pkt in cap:
     layer = pkt.highest_layer
