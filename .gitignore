@@ -13,6 +13,8 @@ venv
 .idea/**/dictionaries
 .idea/**/shelf
 .pcapng
+.pkl
+Anlysis/.pkl
 # Generated files
 .idea/**/contentModel.xml
 TrafficData/
