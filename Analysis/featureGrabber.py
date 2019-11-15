@@ -72,15 +72,15 @@ def get_flow_info(packets_):
         if mark_info in flow_info_dic.keys():
             if flag:
                 n = 0
-            flow_info_dic[mark_info][n][0] += [pk.tcp.time_delta]
-            flow_info_dic[mark_info][n][1] += [pk.length]
+            flow_info_dic[mark_info][n][0] += [pk.length]
+            flow_info_dic[mark_info][n][1] += [pk.tcp.time_delta]
             flow_info_dic[mark_info][n][2] += [pk.tcp.time_relative]
         else:
             flow_info_dic[mark_info] = [[[], [], []], [[], [], []]]
             if flag:
-                flow_info_dic[mark_info][0] = [[pk.tcp.time_delta], [pk.length], [pk.tcp.time_relative]]
+                flow_info_dic[mark_info][0] = [[pk.length], [pk.tcp.time_delta], [pk.tcp.time_relative]]
             else:
-                flow_info_dic[mark_info][1] = [[pk.tcp.time_delta], [pk.length], [pk.tcp.time_relative]]
+                flow_info_dic[mark_info][1] = [[pk.length], [pk.tcp.time_delta], [pk.tcp.time_relative]]
 
 
 def save_packet_feature_dic(path_):
