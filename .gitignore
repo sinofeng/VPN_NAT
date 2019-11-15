@@ -16,7 +16,6 @@ venv
 *.pkl
 # Generated files
 .idea/**/contentModel.xml
-TrafficData/
 # Sensitive or high-churn files
 .idea/**/dataSources/
 .idea/**/dataSources.ids
