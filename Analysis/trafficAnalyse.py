@@ -37,7 +37,7 @@ def draw(dic_pro):
     plt.ylabel('amount', fontsize=14)
     plt.title('Protocol Number of Statistical', fontsize=16)
     plt.show()
-    # plt.savefig('../Picture/protocolPlot.png')
+    # plt.savefig('../Result/protocolPlot.png')
 
 
 def graph_size():
@@ -59,7 +59,7 @@ def graph_size():
     plt.ylabel("amount", fontsize=20)
     plt.title("amount of per " + str(d) + " s", fontsize=20)
     plt.show()
-    # plt.savefig('../Picture/timeStamp.png')
+    # plt.savefig('../Result/timeStamp.png')
 
 
 if __name__ == '__main__':

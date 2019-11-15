@@ -18,6 +18,8 @@ forward(backward) traffic:[length],[time_delta],[time_relative]
 
 import pyshark
 import pickle
+import pandas as pd
+import numpy as np
 
 flow_info_dic = {}
 pk_feature = ['length', 'time_delta', 'time_relative', 'forward', 'mark']
@@ -39,7 +41,15 @@ def get_send_ip(pks):
             ip_dic[addr] += 1
         else:
             ip_dic[addr] = 1
-    return sorted(ip_dic.items(), key=lambda x: x[1], reverse=True)[0][0]
+
+        dst_addr = pk.ip.dst
+        if dst_addr in ip_dic.keys():
+            ip_dic[dst_addr] += 1
+        else:
+            ip_dic[dst_addr] = 1
+    ip = sorted(ip_dic.items(), key=lambda x: x[1], reverse=True)[0][0]
+    print('Send ip:', ip)
+    return ip
 
 
 def get_five_element(packet):
@@ -65,39 +75,93 @@ def update_feature_dic(pk_, mark_, flag_):
 
 
 def get_flow_info(packets_):
+    print('Updating dictionary...\nIt need some time...')
+    count = 0
     for pk in packets_:
-        n = 1
-        mark_info, flag = get_five_element(pk)  # Mark for different flow
-        update_feature_dic(pk, mark_info, flag)
-        if mark_info in flow_info_dic.keys():
-            if flag:
-                n = 0
-            flow_info_dic[mark_info][n][0] += [pk.length]
-            flow_info_dic[mark_info][n][1] += [pk.tcp.time_delta]
-            flow_info_dic[mark_info][n][2] += [pk.tcp.time_relative]
-        else:
-            flow_info_dic[mark_info] = [[[], [], []], [[], [], []]]
-            if flag:
-                flow_info_dic[mark_info][0] = [[pk.length], [pk.tcp.time_delta], [pk.tcp.time_relative]]
+        try:
+            n = 1
+            count += 1
+            if count == 32247:
+                debug = 1
+            mark_info, flag = get_five_element(pk)  # Mark for different flow
+            update_feature_dic(pk, mark_info, flag)
+            if mark_info in flow_info_dic.keys():
+                if flag:
+                    n = 0
+                flow_info_dic[mark_info][n][0] += [pk.length]
+                flow_info_dic[mark_info][n][1] += [pk.tcp.time_delta]
+                flow_info_dic[mark_info][n][2] += [pk.tcp.time_relative]
             else:
-                flow_info_dic[mark_info][1] = [[pk.length], [pk.tcp.time_delta], [pk.tcp.time_relative]]
+                flow_info_dic[mark_info] = [[[], [], []], [[], [], []]]
+                if flag:
+                    flow_info_dic[mark_info][0] = [[pk.length], [pk.tcp.time_delta], [pk.tcp.time_relative]]
+                else:
+                    flow_info_dic[mark_info][1] = [[pk.length], [pk.tcp.time_delta], [pk.tcp.time_relative]]
+        except Exception as e:
+            print(e, count)
+    print('Finish update')
 
 
 def save_packet_feature_dic(path_):
     with open(path_, 'wb+') as f:
         pickle.dump(pk_feature_dic, f)
+    print('Finish write', path_)
 
 
 def save_flow_info_dic(path_):
     with open(path_, 'wb+') as f:
         pickle.dump(flow_info_dic, f)
+    print('Finish write', path_)
+
+
+def write_csv(path_):
+    print('Writing csv')
+    column = ['VPN']
+    for feature in ['ForwardLength', 'ForwardTime', 'BackwardLength', 'BackwardTime']:
+        for sig in ['max', 'min', 'sd', 'avg']:
+            column.append(feature + '_' + sig)
+    write_data = write_csv_helper()
+    fd = pd.DataFrame(write_data, columns=column)
+    fd.to_csv(path_)
+    print('Finish write')
+
+
+def write_csv_helper():
+    write_data = []
+    for mark in flow_info_dic.keys():
+        res = ['Lantern']
+        for i in range(2):
+            for j in range(2):
+                data_list = list(map(float, flow_info_dic[mark][i][j]))
+                if not data_list:
+                    data_list = [0]
+                max_ = max(data_list)
+                min_ = min(data_list)
+                sd_ = np.std(data_list)
+                avg_ = np.average(data_list)
+                res += [max_, min_, sd_, avg_]
+        write_data.append(res)
+    return write_data
+
+
+def get_from_pkl(path1, path2):
+    global flow_info_dic, pk_feature_dic
+    with open(path2, 'rb+') as f:
+        flow_info_dic = pickle.load(f)
 
 
 if __name__ == '__main__':
-    path = '../TrafficData/Shadowsocks2.pcapng'
-    packets = load_traffic(path, 'tls')  # Packet data using filter tls
-    send_ip = get_send_ip(packets)  # Our ip addr, which help us to recognize forward or backward traffic
-    get_flow_info(packets)
-    save_packet_feature_dic('./packet.pkl')
-    save_flow_info_dic('./flow.pkl')
+    load_flag = input('load data from pickle directly?(y or n)\n')
+
+    if 'y' in load_flag:
+        get_from_pkl('./packet.pkl', './flow.pkl')  # Load pickle directly
+    else:
+        path = '../TrafficData/LanternTraffic.pcapng'
+        packets = load_traffic(path, 'tls')  # Packet data using filter tls
+        send_ip = get_send_ip(packets)  # Our ip addr, which help us to recognize forward or backward traffic
+        get_flow_info(packets)
+        save_packet_feature_dic('./packet.pkl')
+        save_flow_info_dic('./flow.pkl')
+
+    write_csv('../Result/lanternAnalysis.csv')  # Write csv file
     debug = 1
