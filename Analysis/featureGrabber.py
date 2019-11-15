@@ -9,7 +9,13 @@ time_delta: time delta with last packet for the same flow
 time_relative: time used with the first packet
 forward: True if forward, False if backward
 mark: Five value to mark if the same flow
+
+flow_info_dic:
+keys: The mark value including five value
+{key:[[forward traffic],[backward traffic]]...}
+forward(backward) traffic:[length],[time_delta],[time_relative]
 """
+
 import pyshark
 import pickle
 
@@ -60,15 +66,21 @@ def update_feature_dic(pk_, mark_, flag_):
 
 def get_flow_info(packets_):
     for pk in packets_:
+        n = 1
         mark_info, flag = get_five_element(pk)  # Mark for different flow
         update_feature_dic(pk, mark_info, flag)
         if mark_info in flow_info_dic.keys():
-            flow_info_dic[mark_info][0] += [pk.tcp.time_delta]
-            flow_info_dic[mark_info][1] += [pk.length]
-            flow_info_dic[mark_info][2] += [pk.tcp.time_relative]
+            if flag:
+                n = 0
+            flow_info_dic[mark_info][n][0] += [pk.tcp.time_delta]
+            flow_info_dic[mark_info][n][1] += [pk.length]
+            flow_info_dic[mark_info][n][2] += [pk.tcp.time_relative]
         else:
-            flow_info_dic[mark_info] = [[pk.tcp.time_delta], [pk.length], [pk.tcp.time_relative]]
-    return flow_info_dic
+            flow_info_dic[mark_info] = [[[], [], []], [[], [], []]]
+            if flag:
+                flow_info_dic[mark_info][0] = [[pk.tcp.time_delta], [pk.length], [pk.tcp.time_relative]]
+            else:
+                flow_info_dic[mark_info][1] = [[pk.tcp.time_delta], [pk.length], [pk.tcp.time_relative]]
 
 
 def save_packet_feature_dic(path_):
