@@ -2,6 +2,7 @@ from scapy.all import *
 import pyshark
 import pickle
 import matplotlib.pyplot as plt
+import json
 
 # pcaps = rdpcap('./TrafficData/Shadowsocks2.pcapng')
 # <pre name="code" class="python">packet=pcaps[0]
@@ -34,7 +35,7 @@ def draw(dic_pro):
     plt.yticks(fontsize=12)
     plt.xlabel('protocol', fontsize=14)
     plt.ylabel('amount', fontsize=14)
-    plt.title('Protocol Number of Statistical',fontsize=16)
+    plt.title('Protocol Number of Statistical', fontsize=16)
     plt.show()
     # plt.savefig('../Picture/protocolPlot.png')
 
@@ -56,13 +57,24 @@ def graph_size():
     plt.yticks(fontsize=14)
     plt.xlabel("timestamp", fontsize=20)
     plt.ylabel("amount", fontsize=20)
-    plt.title("amount of per " + str(d) + " s",fontsize=20)
+    plt.title("amount of per " + str(d) + " s", fontsize=20)
     plt.show()
     # plt.savefig('../Picture/timeStamp.png')
 
 
 if __name__ == '__main__':
-    # packets = pyshark.FileCapture('../TrafficData/Shadowsocks2.pcapng')
+    packets = pyshark.FileCapture('../TrafficData/Shadowsocks2.pcapng', display_filter='tcp')
+    amount = 0
+    # with open('./packet.pkl', 'wb+') as f:
+    #     json.dump(packets, f)
+    for pac in packets:
+        for layer in pac.layers:
+            if 'tcp' in layer._layer_name:
+                print(pac.highest_layer)
+                amount += 1
+
+    print(amount)
+
     # protocol_dic = protocol(packets)
-    draw(protocol_dic)
-    graph_size()
+    # draw(protocol_dic)
+    # graph_size()
