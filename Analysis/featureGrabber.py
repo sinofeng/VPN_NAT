@@ -81,8 +81,8 @@ def get_flow_info(packets_):
         try:
             n = 1
             count += 1
-            if count == 32247:
-                debug = 1
+            # if count == 32248:
+            #     debug = 1
             mark_info, flag = get_five_element(pk)  # Mark for different flow
             update_feature_dic(pk, mark_info, flag)
             if mark_info in flow_info_dic.keys():
@@ -98,7 +98,7 @@ def get_flow_info(packets_):
                 else:
                     flow_info_dic[mark_info][1] = [[pk.length], [pk.tcp.time_delta], [pk.tcp.time_relative]]
         except Exception as e:
-            print(e, count)
+            print(e, count, 'Caused by ipv6')
     print('Finish update')
 
 
@@ -116,20 +116,21 @@ def save_flow_info_dic(path_):
 
 def write_csv(path_):
     print('Writing csv')
-    column = ['VPN']
+    column = []
     for feature in ['ForwardLength', 'ForwardTime', 'BackwardLength', 'BackwardTime']:
         for sig in ['max', 'min', 'sd', 'avg']:
             column.append(feature + '_' + sig)
+    column.append('VPN')
     write_data = write_csv_helper()
     fd = pd.DataFrame(write_data, columns=column)
-    fd.to_csv(path_)
+    fd.to_csv(path_, index=False)
     print('Finish write')
 
 
 def write_csv_helper():
     write_data = []
     for mark in flow_info_dic.keys():
-        res = ['Lantern']
+        res = []
         for i in range(2):
             for j in range(2):
                 data_list = list(map(float, flow_info_dic[mark][i][j]))
@@ -140,6 +141,7 @@ def write_csv_helper():
                 sd_ = np.std(data_list)
                 avg_ = np.average(data_list)
                 res += [max_, min_, sd_, avg_]
+        res.append(1)
         write_data.append(res)
     return write_data
 
@@ -151,17 +153,17 @@ def get_from_pkl(path1, path2):
 
 
 if __name__ == '__main__':
-    load_flag = input('load data from pickle directly?(y or n)\n')
+    load_flag = input('Load data from pickle directly?(y or n)\n')
 
     if 'y' in load_flag:
         get_from_pkl('./packet.pkl', './flow.pkl')  # Load pickle directly
     else:
-        path = '../TrafficData/LanternTraffic.pcapng'
+        path = '../TrafficData/CleanTraffic.pcapng'
         packets = load_traffic(path, 'tls')  # Packet data using filter tls
         send_ip = get_send_ip(packets)  # Our ip addr, which help us to recognize forward or backward traffic
         get_flow_info(packets)
-        save_packet_feature_dic('./packet.pkl')
-        save_flow_info_dic('./flow.pkl')
+        save_packet_feature_dic('./packet_C.pkl')
+        save_flow_info_dic('./flow_C.pkl')
 
     write_csv('../Result/lanternAnalysis.csv')  # Write csv file
     debug = 1
