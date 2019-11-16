@@ -14,6 +14,13 @@ Name:吴柏豪
     - time relative
 - Save the dictionary with pickle
 - Implement Decision Tree with sklearn
-    - Result:
+    - Initial Result:
     ![](Result/DecisionTree.png)
 ### Working:
+- Data set collection
+    - VPN Traffic
+    - White Traafic
+- Machine learning algorithm
+    - C4.5
+    - CART
+    - Random forest
