@@ -13,4 +13,6 @@ Name:吴柏豪
     - time delta
     - time relative
 - Save the dictionary with pickle
+- Implement Decision Tree with sklearn
+    - Result:![image]('./Result/DecisionTree.png')
 ### Working:
