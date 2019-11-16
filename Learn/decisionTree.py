@@ -38,7 +38,7 @@ if __name__ == '__main__':
     clf = clf.fit(X, Y)
     dot_data = tree.export_graphviz(clf, out_file=None, feature_names=feature_name, class_names=target_name)
     graph = graphviz.Source(dot_data)
-    graph.render("../Result/DecisionTree")
+    graph.render("../Result/DecisionTree", format='png')
     check_result()
     # X = [[0.5, 11], [2, 4], [4, 4], [1, 10], [2, 14], [10, 10]]
     # Y = [0, 1, 1, 0, 0, 2]
