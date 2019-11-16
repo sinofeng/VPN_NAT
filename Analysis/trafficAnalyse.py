@@ -65,7 +65,7 @@ def graph_size():
 if __name__ == '__main__':
     packets = pyshark.FileCapture('../TrafficData/Shadowsocks2.pcapng', display_filter='tcp')
     amount = 0
-    # with open('./packet.pkl', 'wb+') as f:
+    # with open('./packet_lantern.pkl', 'wb+') as f:
     #     json.dump(packets, f)
     for pac in packets:
         for layer in pac.layers:

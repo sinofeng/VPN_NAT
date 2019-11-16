@@ -21,20 +21,22 @@ import pickle
 import pandas as pd
 import numpy as np
 
-flow_info_dic = {}
 pk_feature = ['length', 'time_delta', 'time_relative', 'forward', 'mark']
 pk_feature_dic = {key: [] for key in pk_feature}
 send_ip = ''
+vpn_symbol = {'white': 0, 'lantern': 1}
 
 
 def load_traffic(path_, filter_='tls'):
-    packets_ = pyshark.FileCapture(path, display_filter=filter_)
+    packets_ = pyshark.FileCapture(path_, display_filter=filter_)
     return packets_
 
 
 def get_send_ip(pks):
     ip_dic = {}
-    for i in range(100):
+    for time in range(100):
+        if time == 24:
+            a = 1
         pk = pks.next()
         addr = pk.ip.addr
         if addr in ip_dic.keys():
@@ -75,6 +77,7 @@ def update_feature_dic(pk_, mark_, flag_):
 
 
 def get_flow_info(packets_):
+    flow_info_dic = {}
     print('Updating dictionary...\nIt need some time...')
     count = 0
     for pk in packets_:
@@ -99,6 +102,7 @@ def get_flow_info(packets_):
                     flow_info_dic[mark_info][1] = [[pk.length], [pk.tcp.time_delta], [pk.tcp.time_relative]]
         except Exception as e:
             print(e, count, 'Caused by ipv6')
+    return flow_info_dic
     print('Finish update')
 
 
@@ -108,28 +112,27 @@ def save_packet_feature_dic(path_):
     print('Finish write', path_)
 
 
-def save_flow_info_dic(path_):
+def save_flow_info_dic(path_, flow_dic):
     with open(path_, 'wb+') as f:
-        pickle.dump(flow_info_dic, f)
+        pickle.dump(flow_dic, f)
     print('Finish write', path_)
 
 
-def write_csv(path_):
+def write_csv(store_data_, path_, vpn_name):
     print('Writing csv')
     column = []
     for feature in ['ForwardLength', 'ForwardTime', 'BackwardLength', 'BackwardTime']:
         for sig in ['max', 'min', 'sd', 'avg']:
             column.append(feature + '_' + sig)
     column.append('VPN')
-    write_data = write_csv_helper()
-    fd = pd.DataFrame(write_data, columns=column)
+    fd = pd.DataFrame(store_data_, columns=column)
     fd.to_csv(path_, index=False)
     print('Finish write')
 
 
-def write_csv_helper():
-    write_data = []
-    for mark in flow_info_dic.keys():
+def write_csv_helper(flow_dic, vpn_name):
+    w_data = []
+    for mark in flow_dic.keys():
         res = []
         for i in range(2):
             for j in range(2):
@@ -141,29 +144,36 @@ def write_csv_helper():
                 sd_ = np.std(data_list)
                 avg_ = np.average(data_list)
                 res += [max_, min_, sd_, avg_]
-        res.append(1)
-        write_data.append(res)
-    return write_data
+        res.append(vpn_symbol[vpn_name])
+        w_data.append(res)
+    return w_data
 
 
 def get_from_pkl(path1, path2):
-    global flow_info_dic, pk_feature_dic
+    # global flow_info_dic, pk_feature_dic
     with open(path2, 'rb+') as f:
-        flow_info_dic = pickle.load(f)
+        flow_dic = pickle.load(f)
+    return flow_dic
 
 
 if __name__ == '__main__':
-    load_flag = input('Load data from pickle directly?(y or n)\n')
+    vpn_names = ['white', 'lantern']
+    data_dir = '../TrafficData/'
+    data_path = ['CleanTraffic.pcapng', 'LanternTraffic.pcapng']
+    store_data = []
+    for i in range(len(vpn_names)):
+        load_flag = input('{}: Load data from pickle directly?(y or n)\n'.format(vpn_names[i]))
 
-    if 'y' in load_flag:
-        get_from_pkl('./packet.pkl', './flow.pkl')  # Load pickle directly
-    else:
-        path = '../TrafficData/CleanTraffic.pcapng'
-        packets = load_traffic(path, 'tls')  # Packet data using filter tls
-        send_ip = get_send_ip(packets)  # Our ip addr, which help us to recognize forward or backward traffic
-        get_flow_info(packets)
-        save_packet_feature_dic('./packet_C.pkl')
-        save_flow_info_dic('./flow_C.pkl')
-
-    write_csv('../Result/lanternAnalysis.csv')  # Write csv file
+        if 'y' in load_flag:
+            flow_info_dic = get_from_pkl('packet_{}.pkl'.format(vpn_names[i]),
+                                         'flow_{}.pkl'.format(vpn_names[i]))  # Load pickle directly
+        else:
+            packets = load_traffic(data_dir + data_path[i], 'tls')  # Packet data using filter tls
+            send_ip = get_send_ip(packets)  # Our ip addr, which help us to recognize forward or backward traffic
+            flow_info_dic = get_flow_info(packets)
+            save_packet_feature_dic('packet_{}.pkl'.format(vpn_names[i]))
+            save_flow_info_dic('flow_{}.pkl'.format(vpn_names[i]), flow_info_dic)
+        write_data = write_csv_helper(flow_info_dic, vpn_names[i])
+        store_data += write_data
+    write_csv(store_data, '../Result/Feature.csv', 'white')  # Write csv file
     debug = 1
