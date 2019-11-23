@@ -2,7 +2,9 @@ import pyshark
 import pickle
 
 SEPERATOR = "+"
-
+PCAP_POSTFIX = '.pcap'
+PICKLE_POSTFIX = '.pickle'
+file_path = 'D:\\vpn\\result\\'
 
 class flow():
     def __init__(self,packet):
@@ -64,21 +66,20 @@ def get_five_element(packet):
 def get_time_element(packet):
     return str(packet.tcp.time_delta),str(packet.tcp.time_relative)
 
-if __name__ == '__main__':
-    file_path = 'C:\\Users\\\haoruikwok\\\Desktop\\result_google\\psiphon_11times.pcap'
-    pcap_data = loadpcap_from_file(file_path,'tcp')
-
+def extract_from_file(name,filter_):
+    pcap_data = loadpcap_from_file(file_path+name+PCAP_POSTFIX,'tcp')
     multiple_flows = {}
     pkt_counter = 1
     for packet in pcap_data:
-        src_ip,src_port,dst_ip,dst_port,protocol_name = get_five_element(packet)
+        src_ip, src_port, dst_ip, dst_port, protocol_name = get_five_element(packet)
 
         if src_port == '3389' or dst_port == '3389':
             pkt_counter += 1
             continue
         else:
             timestamp_delta, timestamp_relative = get_time_element(packet)
-            pkt = flow_packet(src_ip,src_port,dst_ip,dst_port,protocol_name,timestamp_delta,timestamp_relative,packet)
+            pkt = flow_packet(src_ip, src_port, dst_ip, dst_port, protocol_name, timestamp_delta, timestamp_relative,
+                              packet)
             pkt_quintuple = pkt.sort_quintuple()
             if pkt_quintuple in multiple_flows.keys():
                 multiple_flows[pkt_quintuple].packets.append(pkt)
@@ -86,6 +87,36 @@ if __name__ == '__main__':
                 multiple_flows[pkt_quintuple] = flow(pkt)
         pkt_counter += 1
         if pkt_counter % 1000 == 0:
-            print("Processing pkt count: ",pkt_counter)
+            print("Processing pkt of {} count: ".format(name), pkt_counter)
     debug = 1
-    store_obj2pickle(multiple_flows,'./flows.pickle')
+    store_obj2pickle(multiple_flows, '.\\' + name + PICKLE_POSTFIX)
+
+if __name__ == '__main__':
+    names = ['psiphon_11times','lantern_20times','wujie_27times','white_traffic']
+    for name in names:
+        extract_from_file(name,'tcp')
+
+    #
+    # pcap_data = loadpcap_from_file(file_path,'tcp')
+    #
+    # multiple_flows = {}
+    # pkt_counter = 1
+    # for packet in pcap_data:
+    #     src_ip,src_port,dst_ip,dst_port,protocol_name = get_five_element(packet)
+    #
+    #     if src_port == '3389' or dst_port == '3389':
+    #         pkt_counter += 1
+    #         continue
+    #     else:
+    #         timestamp_delta, timestamp_relative = get_time_element(packet)
+    #         pkt = flow_packet(src_ip,src_port,dst_ip,dst_port,protocol_name,timestamp_delta,timestamp_relative,packet)
+    #         pkt_quintuple = pkt.sort_quintuple()
+    #         if pkt_quintuple in multiple_flows.keys():
+    #             multiple_flows[pkt_quintuple].packets.append(pkt)
+    #         else:
+    #             multiple_flows[pkt_quintuple] = flow(pkt)
+    #     pkt_counter += 1
+    #     if pkt_counter % 1000 == 0:
+    #         print("Processing pkt count: ",pkt_counter)
+    # debug = 1
+    # store_obj2pickle(multiple_flows,'./flows.pickle')
