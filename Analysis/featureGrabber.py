@@ -146,24 +146,25 @@ def write_csv_helper(flow_dic, vpn_name):
     w_data = []
     for mark in flow_dic.keys():
         # The data of one flow
-        time_stamp = list(map(float, flow_info_dic[mark][0]))
-        time_stamp1 = list(map(float, flow_info_dic[mark][1]))
-        break_points, break_points1 = get_interval_index(time_stamp, time_stamp1, interval=15)
-        for k in range(len(break_points)):
+        time_stamp = list(map(float, flow_info_dic[mark][0][3]))
+        time_stamp1 = list(map(float, flow_info_dic[mark][1][3]))
+        break_points = get_interval_index(time_stamp, time_stamp1, interval=15)
+        for k in range(len(break_points[0])):
+            res = []
             for i in range(2):
-                for begin, end in break_points[i]:
-                    res = []
-                    for j in range(2):
-                        data_list = list(map(float, flow_info_dic[mark][i][j][begin:end]))
-                        if not data_list:
-                            data_list = [0]
-                        max_ = max(data_list)
-                        min_ = min(data_list)
-                        sd_ = np.std(data_list)
-                        avg_ = np.average(data_list)
-                        res += [max_, min_, sd_, avg_]
-                        res.append(vpn_symbol[vpn_name])
-                    w_data.append(res)
+                begin = break_points[i][k][0]
+                end = break_points[i][k][1]
+                for j in range(2):
+                    data_list = list(map(float, flow_info_dic[mark][i][j][begin:end]))
+                    if not data_list:
+                        data_list = [0]
+                    max_ = max(data_list)
+                    min_ = min(data_list)
+                    sd_ = np.std(data_list)
+                    avg_ = np.average(data_list)
+                    res += [max_, min_, sd_, avg_]
+            res.append(vpn_symbol[vpn_name])
+            w_data.append(res)
     return w_data
 
 
@@ -182,24 +183,28 @@ def get_interval_index(time_stamp1, time_stamp2, interval=15):
     :param interval
     :return:
     """
-    res = list()
     res1 = list()
-    begin_index = 0
-    current_index = 0
+    res2 = list()
     begin_index1 = 0
     current_index1 = 0
-    while current_index < len(time_stamp1):
-        while current_index < len(time_stamp1) and time_stamp1[current_index] - time_stamp1[begin_index] < interval:
-            current_index += 1
-
-        while current_index1 < len(time_stamp2) and time_stamp2[current_index1] < time_stamp1[current_index]:
+    begin_index2 = 0
+    current_index2 = 0
+    while current_index1 < len(time_stamp1):
+        while current_index1 < len(time_stamp1) and time_stamp1[current_index1] - time_stamp1[begin_index1] < interval:
             current_index1 += 1
-        res1.append(begin_index1, current_index1)
-        res.append((begin_index, current_index))
-        begin_index = current_index
-        begin_index1 = current_index1
 
-    return res, res1
+        while current_index2 < len(time_stamp2) and current_index1 < len(time_stamp1) and time_stamp2[current_index2] < \
+                time_stamp1[current_index1]:
+            current_index2 += 1
+        if current_index2 >= len(time_stamp2):
+            break
+        if current_index1 >= len(time_stamp1):
+            break
+        res2.append((begin_index2, current_index2))
+        res1.append((begin_index1, current_index1))
+        begin_index1 = current_index1
+        begin_index2 = current_index2
+    return res1, res2
 
 
 if __name__ == '__main__':
@@ -222,7 +227,5 @@ if __name__ == '__main__':
             save_flow_info_dic('flow_{}.pkl'.format(vpn_names[i]), flow_info_dic)
         write_data = write_csv_helper(flow_info_dic, vpn_names[i])
         store_data += write_data
-    for i in store_data:
-        print(len(i))
     write_csv(store_data, '../Result/Feature.csv', 'white')  # Write csv file
     debug = 1
