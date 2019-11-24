@@ -61,7 +61,7 @@ def get_five_element(packet):
     :return:
     """
     flag = False
-    layer_name = str(packet.highest_layer)
+    layer_name = str(packet.ip.proto)
     src_ip = str(packet.ip.addr)
     dst_ip = str(packet.ip.dst)
     if src_ip == send_ip:
