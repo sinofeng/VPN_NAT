@@ -99,7 +99,7 @@ def get_flow_info(packets_, name):
             if count % 1000 == 0:
                 print(name, count)
             mark_info, flag = get_five_tuple(pk)  # Mark for different flow
-            update_feature_dic(pk, mark_info, flag)
+            # update_feature_dic(pk, mark_info, flag)
             if mark_info in flow_info_dic.keys():
                 if flag:
                     n = 0
@@ -153,12 +153,12 @@ def write_csv_helper(flow_dic, vpn_name):
         # The data of one flow
         time_stamp = list(map(float, flow_info_dic[mark][0][3]))
         time_stamp1 = list(map(float, flow_info_dic[mark][1][3]))
-        break_points = get_interval_index(time_stamp, time_stamp1, interval=0.01)
+        break_points = get_interval_index(time_stamp, time_stamp1, interval=15)
 
-        res = []
-        for i in range(2):
-            break_len = len(break_points[i]) if len(break_points[i]) > 0 else 1
-            for k in range(break_len):
+        break_len = len(break_points[0]) if len(break_points[0]) > 0 else 1
+        for k in range(break_len):
+            res = []
+            for i in range(2):
                 begin = break_points[i][k][0] if break_points[i] else 0
                 end = break_points[i][k][1] if break_points[i] else -1
                 for j in range(2):
@@ -175,8 +175,8 @@ def write_csv_helper(flow_dic, vpn_name):
                     sd_ = np.std(data_list)
                     avg_ = np.average(data_list)
                     res += [max_, min_, sd_, avg_]
-        res.append(vpn_symbol[vpn_name])
-        w_data.append(res)
+            res.append(vpn_symbol[vpn_name])
+            w_data.append(res)
     return w_data
 
 
@@ -223,28 +223,22 @@ if __name__ == '__main__':
     vpn_names = ['white', 'lantern', 'psiphon', 'wujie']
     vpn_symbol = {key: i for i, key in enumerate(vpn_names)}
     data_dir = '../TrafficData/'
-    data_path = ['WhiteTraffic.pcapng', 'LanternTraffic.pcapng', 'psiphon_11times.pcap', 'wujie_27times.pcap']
+    data_path = ['white.pcap', 'LanternTraffic.pcapng', 'psiphon_11times.pcap', 'wujie_27times.pcap']
     store_data = []
-    for i in range(0, 1):
+    for i in range(0, len(vpn_names)):
         # load_flag = input('{}: Load data from pickle directly?(y or n)\n'.format(vpn_names[i]))
         load_flag = 'y'
         if 'y' in load_flag:
             flow_info_dic = get_from_pkl('packet_{}.pkl'.format(vpn_names[i]),
                                          'flow_{}.pkl'.format(vpn_names[i]))  # Load pickle directly
-            sum_ = 0
-            for key in flow_info_dic.keys():
-                flow = flow_info_dic[key]
-                for i in range(2):
-                    sum_ += len(flow[i][0])
-            print(sum_)
-            debug = 1
+            print(vpn_names[i], 'Load Finished')
         else:
             packets = load_traffic(data_dir + data_path[i], 'tls')  # Packet data using filter tls
             send_ip = get_send_ip(packets)  # Our ip addr, which help us to recognize forward or backward traffic
             flow_info_dic = get_flow_info(packets, vpn_names[i])
-            save_packet_feature_dic('packet_{}.pkl'.format(vpn_names[i]))
+            # save_packet_feature_dic('packet_{}.pkl'.format(vpn_names[i]))
             save_flow_info_dic('flow_{}.pkl'.format(vpn_names[i]), flow_info_dic)
         write_data = write_csv_helper(flow_info_dic, vpn_names[i])
         store_data += write_data
-    write_csv(store_data, '../Result/Feature.csv', 'white')  # Write csv file
+    write_csv(store_data, '../Result/DataSet.csv', 'white')  # Write csv file
     debug = 1
