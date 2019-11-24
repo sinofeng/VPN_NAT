@@ -24,19 +24,16 @@ import numpy as np
 pk_feature = ['length', 'time_delta', 'time_relative', 'forward', 'mark']
 pk_feature_dic = {key: [] for key in pk_feature}
 send_ip = ''
-vpn_symbol = {'white': 0, 'lantern': 1}
 
 
 def load_traffic(path_, filter_='tls'):
-    packets_ = pyshark.FileCapture(path_, display_filter=filter_)
+    packets_ = pyshark.FileCapture(path_, display_filter=filter_, keep_packets=False)
     return packets_
 
 
 def get_send_ip(pks):
     ip_dic = {}
     for time in range(100):
-        if time == 24:
-            a = 1
         pk = pks.next()
         addr = pk.ip.addr
         if addr in ip_dic.keys():
@@ -76,7 +73,7 @@ def update_feature_dic(pk_, mark_, flag_):
     pk_feature_dic['mark'].append(mark_)
 
 
-def get_flow_info(packets_):
+def get_flow_info(packets_, name):
     flow_info_dic = {}
     print('Updating dictionary...\nIt need some time...')
     count = 0
@@ -84,8 +81,8 @@ def get_flow_info(packets_):
         try:
             n = 1
             count += 1
-            # if count == 32248:
-            #     debug = 1
+            if count % 1000 == 0:
+                print(name, count)
             mark_info, flag = get_five_element(pk)  # Mark for different flow
             update_feature_dic(pk, mark_info, flag)
             if mark_info in flow_info_dic.keys():
@@ -157,20 +154,28 @@ def get_from_pkl(path1, path2):
 
 
 if __name__ == '__main__':
-    vpn_names = ['white', 'lantern']
+    vpn_names = ['psiphon', 'wujie']
+    vpn_symbol = {key: i for i, key in enumerate(vpn_names)}
     data_dir = '../TrafficData/'
-    data_path = ['CleanTraffic.pcapng', 'LanternTraffic.pcapng']
+    data_path = ['psiphon_11times.pcap', 'wujie_27times.pcap']
     store_data = []
-    for i in range(len(vpn_names)):
-        load_flag = input('{}: Load data from pickle directly?(y or n)\n'.format(vpn_names[i]))
-
+    for i in range(1, len(vpn_names)):
+        # load_flag = input('{}: Load data from pickle directly?(y or n)\n'.format(vpn_names[i]))
+        load_flag = 'y'
         if 'y' in load_flag:
             flow_info_dic = get_from_pkl('packet_{}.pkl'.format(vpn_names[i]),
                                          'flow_{}.pkl'.format(vpn_names[i]))  # Load pickle directly
+            sum_ = 0
+            for key in flow_info_dic.keys():
+                flow = flow_info_dic[key]
+                for i in range(2):
+                    sum_ += len(flow[i][0])
+            print(sum_)
+            debug = 1
         else:
             packets = load_traffic(data_dir + data_path[i], 'tls')  # Packet data using filter tls
             send_ip = get_send_ip(packets)  # Our ip addr, which help us to recognize forward or backward traffic
-            flow_info_dic = get_flow_info(packets)
+            flow_info_dic = get_flow_info(packets, vpn_names[i])
             save_packet_feature_dic('packet_{}.pkl'.format(vpn_names[i]))
             save_flow_info_dic('flow_{}.pkl'.format(vpn_names[i]), flow_info_dic)
         write_data = write_csv_helper(flow_info_dic, vpn_names[i])
